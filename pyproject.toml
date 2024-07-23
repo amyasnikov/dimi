@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tinydi"
+version = "0.1.0"
+description = "Dependecy Injection made easy"
+authors = [
+    {name = "Anton Miasnikov", email = "anton2008m@gmail.com"},
+]
+license = {file = "LICENSE"}
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Telecommunications Industry",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Unix",
+    "Operating System :: POSIX :: Linux",
+    "Framework :: Django",
+    "Topic :: System :: Networking",
+    "Topic :: Internet",
+]
+requires-python = ">=3.9"
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+
+[tool.setuptools.packages.find]
+include = ["tinydi*"]
+
+[project.optional-dependencies]
+dev = [
+  "pytest < 9.0.0",
+  "pytest-cov[all]",
+  "ruff < 1.0.0",
+  "pre_commit < 4.0.0"
+]
+
+[tool.ruff]
+include = ["tinydi/**.py", "tests/**.py"]
+exclude = ["__pycache__", "development"]
+line-length = 120
+indent-width = 4
+force-exclude = true
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "B", "T", "I"]
+ignore = ["B905"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["tinydi"]
+no-lines-before = ["local-folder"]
+lines-after-imports = 2
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = false
+
+[tool.pytest.ini_options]
+addopts = "-vv"
+testpaths = ["tests"]
+pythonpath = [""]
+asyncio_mode = "auto"
