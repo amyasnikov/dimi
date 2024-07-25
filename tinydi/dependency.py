@@ -1,5 +1,6 @@
 import inspect
 from dataclasses import dataclass, field
+from typing import Any
 
 from .exceptions import InvalidDependency
 from .scopes import Scope
@@ -8,7 +9,7 @@ from .scopes import Scope
 @dataclass(slots=True)
 class Dependency:
     scope: Scope
-    keywords: dict
+    keywords: dict[str, Any]
     has_async_deps: bool = False
     _copied: bool = field(default=False, repr=False)
 
@@ -59,12 +60,8 @@ class Dependency:
         return await dfs(self, top=True)
 
     def call(self):
-        result = self._resolve_sync()()
-        self.scope.set_value(result)
-        return result
+        return self._resolve_sync()()
 
     async def acall(self):
         resolved = await self._resolve_sync()._resolve_async()
-        result = await resolved()
-        self.scope.set_value(result)
-        return result
+        return await resolved() if resolved.is_async else resolved()

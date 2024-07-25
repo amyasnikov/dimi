@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Annotated
 
 import pytest
@@ -95,3 +96,31 @@ async def test_dependent_functions_async(di_fgh_async):
         return hh
 
     assert await func() == "Ffgh"
+
+
+def test_dataclasses(di):
+    @di.dependency
+    @dataclass
+    class A:
+        arg: int = 10
+
+    @di.dependency
+    def get_a():
+        return A(20)
+
+    @di.dependency
+    @dataclass
+    class B:
+        a1: Annotated[A, ...]
+        a2: Annotated[A, get_a]
+
+    @di.inject
+    @dataclass
+    class C:
+        a: Annotated[A, ...]
+        b: Annotated[B, ...]
+
+    c = C()
+    assert c.b.a2.arg == 20
+    assert c.b.a1.arg == 10
+    assert c.a.arg == 10

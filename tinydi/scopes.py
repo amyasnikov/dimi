@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from asyncio import iscoroutinefunction
 from contextvars import ContextVar
-from functools import wraps
 
 
 class Scope(ABC):
@@ -9,6 +8,9 @@ class Scope(ABC):
 
     def __init__(self, func):
         self.func = func
+
+    def __eq__(self, other):
+        return type(self) == type(other) and self.func == other.func
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({repr(self.func)})"
@@ -21,16 +23,10 @@ class Scope(ABC):
     def __call__(self, *args, **kwargs):
         pass
 
-    @abstractmethod
-    def set_value(self, value):
-        pass
-
 
 class Factory(Scope):
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
-
-    def set_value(self, value): ...
 
 
 class Singleton(Scope):
@@ -41,16 +37,21 @@ class Singleton(Scope):
         super().__init__(func)
         self.cached_value = self._UNSET
 
-    def __call__(self, *args, **kwargs):
-        if (value := self.get_value()) is self._UNSET:
-            return self.func(*args, **kwargs)
-        if self.is_async:
+    @property
+    def __call__(self):
+        return self._acall if self.is_async else self._call
 
-            async def f():
-                return value
+    def _call(self, *args, **kwargs):
+        if self.get_value() is self._UNSET:
+            result = self.func(*args, **kwargs)
+            self.set_value(result)
+        return self.get_value()
 
-            return wraps(self.func)(f)()
-        return value
+    async def _acall(self, *args, **kwargs):
+        if self.get_value() is self._UNSET:
+            result = await self.func(*args, **kwargs)
+            self.set_value(result)
+        return self.get_value()
 
     def set_value(self, value):
         self.cached_value = value
