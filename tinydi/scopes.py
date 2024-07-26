@@ -1,6 +1,10 @@
+import copy
 from abc import ABC, abstractmethod
 from asyncio import iscoroutinefunction
 from contextvars import ContextVar
+from threading import RLock
+
+from .exceptions import InvalidOperation
 
 
 class Scope(ABC):
@@ -8,6 +12,8 @@ class Scope(ABC):
 
     def __init__(self, func):
         self.func = func
+        if not callable(func):
+            raise InvalidOperation(f"Cannot make Scope out of a non-callable object: {func}")
 
     def __eq__(self, other):
         return type(self) == type(other) and self.func == other.func
@@ -20,8 +26,7 @@ class Scope(ABC):
         return iscoroutinefunction(self.func)
 
     @abstractmethod
-    def __call__(self, *args, **kwargs):
-        pass
+    def __call__(self, *args, **kwargs): ...
 
 
 class Factory(Scope):
@@ -29,13 +34,13 @@ class Factory(Scope):
         return self.func(*args, **kwargs)
 
 
-class Singleton(Scope):
+class Cacheable(Scope):
     _UNSET = object()
-    __slots__ = ["func", "cached_value"]
+    __slots__ = ["func", "_cached_value"]
 
     def __init__(self, func):
         super().__init__(func)
-        self.cached_value = self._UNSET
+        self._cached_value = self.setup_init_value()
 
     @property
     def __call__(self):
@@ -53,20 +58,54 @@ class Singleton(Scope):
             self.set_value(result)
         return self.get_value()
 
-    def set_value(self, value):
-        self.cached_value = value
+    @abstractmethod
+    def setup_init_value(self): ...
 
-    def get_value(self):
-        return self.cached_value
+    @abstractmethod
+    def get_value(self): ...
+
+    @abstractmethod
+    def set_value(self, value): ...
 
 
-class Context(Singleton):
+class LockedCacheable(Cacheable):
+    __slots__ = ["func", "_cached_value", "_lock"]
+
     def __init__(self, func):
-        Scope.__init__(self, func)
-        self.cached_value = ContextVar("cached_value", default=self._UNSET)
+        super().__init__(func)
+        self._lock = RLock()
 
-    def get_value(self):
-        return self.cached_value.get()
+    def _call(self, *args, **kwargs):
+        with self._lock:
+            return super()._call(*args, **kwargs)
+
+    async def _acall(self, *args, **kwargs):
+        with self._lock:
+            return await super()._acall(*args, **kwargs)
+
+    def __deepcopy__(self, memo):
+        result = type(self)(func=copy.deepcopy(self.func, memo))
+        result._cached_value = copy.deepcopy(self._cached_value, memo)
+        return result
+
+
+class Singleton(LockedCacheable):
+    def setup_init_value(self):
+        return self._UNSET
 
     def set_value(self, value):
-        self.cached_value.set(value)
+        self._cached_value = value
+
+    def get_value(self):
+        return self._cached_value
+
+
+class Context(Cacheable):
+    def setup_init_value(self):
+        return ContextVar("_cached_value", default=self._UNSET)
+
+    def get_value(self):
+        return self._cached_value.get()
+
+    def set_value(self, value):
+        self._cached_value.set(value)

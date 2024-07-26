@@ -3,6 +3,7 @@ from asyncio import iscoroutinefunction
 from collections import ChainMap
 from contextlib import contextmanager, suppress
 from functools import wraps
+from threading import Lock
 from types import FunctionType
 from typing import Annotated, get_args, get_origin
 
@@ -16,8 +17,9 @@ class TinyDI:
 
     def __init__(self):
         self._deps = ChainMap()
+        self.lock = Lock()
 
-    def _get_factory(self, key):
+    def _get(self, key):
         with suppress(KeyError):
             return self._deps[key]
         raise UnknownDependency(key)
@@ -28,25 +30,16 @@ class TinyDI:
     def __setitem__(self, key, value):
         if not callable(key):
             raise InvalidOperation(f"Cannot add non-callable object to the DI container: {key}")
-        if not isinstance(value, Scope):
-            value = self.default_scope_class(value)
-        injectables = self._get_factories_for_func(value.func)
-        kwargs = dict(self._kwargs_to_inject(value.func, (), {}, injectables))
-        self._deps[key] = Dependency(value, kwargs)
+        with self.lock:
+            if not isinstance(value, Scope):
+                value = self.default_scope_class(value)
+            injectables = self._get_factories_for_func(value.func)
+            kwargs = dict(self._kwargs_to_inject(value.func, (), {}, injectables))
+            self._deps[key] = Dependency(value, kwargs)
 
     def __getitem__(self, key):
-        dependency = self._get_factory(key)
-        if dependency.is_async:
-            raise InvalidOperation("Cannot extract async dependencies this way, use .aget instead")
-        return dependency.call()
-
-    get = __getitem__
-
-    async def aget(self, key):
-        dependency = self._get_factory(key)
-        if dependency.is_async:
-            return await dependency.acall()
-        return dependency.call()
+        dependency = self._get(key)
+        return dependency.acall() if dependency.is_async else dependency.call()
 
     def _get_factories_for_func(self, callable):
         injectable_factories = []
@@ -58,7 +51,7 @@ class TinyDI:
             if get_origin(annotation) is Annotated:
                 annotation_args = get_args(annotation)
                 factory = annotation_args[1] if annotation_args[1] != ... else annotation_args[0]
-                injectable_factories.append((arg, self._get_factory(factory)))
+                injectable_factories.append((arg, self._get(factory)))
         return injectable_factories
 
     @staticmethod
