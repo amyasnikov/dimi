@@ -1,0 +1,57 @@
+name: CI
+on:
+  push:
+    branches: ["**"]
+    tags-ignore: ["**"]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.12"
+      - name: Run pre-commit checks
+        uses: pre-commit/action@v3.0.1
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python_version: ["3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v3
+        with:
+            python-version: ${{ matrix.python_version }}
+
+      - name: Setup dev packages
+        run: pip install -e .[dev]
+
+      - name: Run Tests
+        id: run_tests
+        run: >-
+          set -o pipefail
+          && pytest --cov
+          | tee /dev/stderr | grep -oP '(?<=Total coverage:\s)[0-9.]+'
+          | awk '{print "cov="$1}' > $GITHUB_OUTPUT
+
+      - name: Create Coverage Badge
+        if: github.ref == 'refs/heads/master' && matrix.python_version == '3.12'
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_TOKEN }}
+          gistID: 43fbe231840b4945691de15d43eb003d
+          filename: cov_tinydi.json
+          label: Coverage
+          message: ${{ fromJSON(steps.run_tests.outputs.cov) }}%
+          valColorRange: ${{ fromJSON(steps.run_tests.outputs.cov) }}
+          maxColorRange: 100
+          minColorRange: 50

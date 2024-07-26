@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tinydi"
 version = "0.1.0"
-description = "Dependecy Injection made easy"
+description = "Dependency Injection made easy"
 authors = [
     {name = "Anton Miasnikov", email = "anton2008m@gmail.com"},
 ]
@@ -16,17 +16,14 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Intended Audience :: System Administrators",
-    "Intended Audience :: Telecommunications Industry",
+    "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: Unix",
-    "Operating System :: POSIX :: Linux",
-    "Framework :: Django",
-    "Topic :: System :: Networking",
-    "Topic :: Internet",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development",
 ]
 requires-python = ">=3.9"
 
@@ -42,6 +39,7 @@ include = ["tinydi*"]
 dev = [
   "pytest < 9.0.0",
   "pytest-cov[all]",
+  "pytest-asyncio < 1.0.0",
   "ruff < 1.0.0",
   "pre_commit < 4.0.0"
 ]
@@ -77,3 +75,12 @@ addopts = "-vv"
 testpaths = ["tests"]
 pythonpath = [""]
 asyncio_mode = "auto"
+
+[tool.coverage.run]
+branch = true
+source = ["tinydi"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 90
+exclude_lines = ["@abstractmethod"]
