@@ -1,4 +1,5 @@
 import inspect
+import sys
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -6,7 +7,7 @@ from .exceptions import InvalidDependency
 from .scopes import Scope
 
 
-@dataclass(slots=True)
+@dataclass(**{"slots": True} if sys.version_info >= (3, 10) else {})
 class Dependency:
     scope: Scope
     keywords: dict[str, Any]
