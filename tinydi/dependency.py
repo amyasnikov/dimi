@@ -9,6 +9,10 @@ from .scopes import Scope
 
 @dataclass(**{"slots": True} if sys.version_info >= (3, 10) else {})
 class Dependency:
+    """
+    Wrapper for every callable being stored inside the DI container
+    """
+
     scope: Scope
     keywords: dict[str, Any]
     has_async_deps: bool = False
@@ -32,6 +36,9 @@ class Dependency:
         return self.scope(**self.keywords)
 
     def copy(self):
+        """
+        Shallow copy of the Dependency
+        """
         return type(self)(self.scope, self.keywords.copy(), self.has_async_deps, True)
 
     @property
@@ -61,11 +68,20 @@ class Dependency:
         return await dfs(self, top=True)
 
     def call(self):
+        """
+        Resolve sync dependency and return the result of the call
+        """
         return self._resolve_sync()()
 
     async def acall(self):
+        """
+        Resolve async dependency and return the result of the call
+        """
         resolved = await self._resolve_sync()._resolve_async()
         return await resolved() if resolved.is_async else resolved()
 
     def fn(self):
+        """
+        Resolve the dependency and return the callable with no args
+        """
         return self.acall if self.is_async else self.call

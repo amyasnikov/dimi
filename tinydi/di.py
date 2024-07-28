@@ -14,6 +14,10 @@ from .scopes import Factory, Scope
 
 
 class TinyDI:
+    """
+    Dependency Injection container
+    """
+
     default_scope_class = Factory
     fastapi = fastapi_depends
 
@@ -30,6 +34,9 @@ class TinyDI:
         return key in self._deps
 
     def __setitem__(self, key, value):
+        """
+        Add the dependency to the container
+        """
         if not callable(key):
             raise InvalidOperation(f"Cannot add non-callable object to the DI container: {key}")
         with self.lock:
@@ -40,9 +47,16 @@ class TinyDI:
             self._deps[key] = Dependency(value, kwargs)
 
     def __getitem__(self, key):
+        """
+        Retrieve the dependency from the container, resolve sub-dependencies and return the call result
+        """
         return self.fn(key)()
 
     def fn(self, key):
+        """
+        Retrieve the dependency from the container, resolve sub-dependencies
+        and return it in a form of a callable object with no arguments
+        """
         return self._get(key).fn()
 
     def _get_factories_for_func(self, callable):
@@ -66,6 +80,11 @@ class TinyDI:
 
     @property
     def inject(self):
+        """
+        Resolve and inject the dependencies defined via `Annotated[SomeType, some_callable]`
+        at the time of a function call
+        """
+
         def decorator(func):
             def sync_wrapper(*args, **kwargs):
                 injectables = self._kwargs_to_inject(func, args, kwargs, injectable_factories)
@@ -84,6 +103,11 @@ class TinyDI:
 
     @property
     def dependency(self):
+        """
+        Put the dependency (callable) into the DI container and bind it with sub-dependencies
+        marked via `Annotated[SomeType, some_callable]`
+        """
+
         def outer(func=None, *, scope=self.default_scope_class):
             def decorator(f):
                 self[f] = scope(f)

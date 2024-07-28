@@ -8,6 +8,10 @@ from .exceptions import InvalidOperation
 
 
 class Scope(ABC):
+    """
+    Wrapper for a callable which may optionally cache its value (see implementations)
+    """
+
     __slots__ = ["func"]
 
     def __init__(self, func):
@@ -30,6 +34,10 @@ class Scope(ABC):
 
 
 class Factory(Scope):
+    """
+    Default wrapper. Does nothing
+    """
+
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
@@ -59,13 +67,22 @@ class Cacheable(Scope):
         return self.get_value()
 
     @abstractmethod
-    def setup_init_value(self): ...
+    def setup_init_value(self):
+        """
+        Set the initial value for the cached variable
+        """
 
     @abstractmethod
-    def get_value(self): ...
+    def get_value(self):
+        """
+        Retrieve the value for the cached variable
+        """
 
     @abstractmethod
-    def set_value(self, value): ...
+    def set_value(self, value):
+        """
+        Set the value for the cached variable
+        """
 
 
 class LockedCacheable(Cacheable):
@@ -90,6 +107,10 @@ class LockedCacheable(Cacheable):
 
 
 class Singleton(LockedCacheable):
+    """
+    Caches first result of a function call for the whole lifetime of the app
+    """
+
     def setup_init_value(self):
         return self._UNSET
 
@@ -101,6 +122,10 @@ class Singleton(LockedCacheable):
 
 
 class Context(Cacheable):
+    """
+    Caches the result of a function call into `contextvars.ContextVar`
+    """
+
     def setup_init_value(self):
         return ContextVar("_cached_value", default=self._UNSET)
 
