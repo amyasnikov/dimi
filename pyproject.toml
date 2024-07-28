@@ -3,9 +3,9 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tinydi"
+name = "dimi"
 version = "1.0.0"
-description = "Dependency Injection made easy"
+description = "Minimalistic Dependency Injection for Python"
 authors = [
     {name = "Anton Miasnikov", email = "anton2008m@gmail.com"},
 ]
@@ -34,13 +34,13 @@ content-type = "text/markdown"
 
 
 [tool.setuptools.packages.find]
-include = ["tinydi*"]
+include = ["dimi*"]
 
 [tool.setuptools.dynamic.optional-dependencies]
 dev = {file = ["requirements/dev.txt"]}
 
 [tool.ruff]
-include = ["tinydi/**.py", "tests/**.py"]
+include = ["dimi/**.py", "tests/**.py"]
 exclude = ["__pycache__", "development"]
 line-length = 120
 indent-width = 4
@@ -54,7 +54,7 @@ ignore = ["B905"]
 "__init__.py" = ["F401"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["tinydi"]
+known-first-party = ["dimi"]
 no-lines-before = ["local-folder"]
 lines-after-imports = 2
 
@@ -73,7 +73,7 @@ asyncio_mode = "auto"
 
 [tool.coverage.run]
 branch = true
-source = ["tinydi"]
+source = ["dimi"]
 
 [tool.coverage.report]
 show_missing = true

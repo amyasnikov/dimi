@@ -37,7 +37,7 @@ def service_info(service: Annotated[SomeService, ...]):
 
 ## Usage with FastAPI
 
-FastAPI requires using its own `Depends` inside view function arguments. To comply with this requirement `TinyDI.fastapi()` method is introduced.
+FastAPI requires using its own `Depends` inside view function arguments. To comply with this requirement `Container.fastapi()` method is introduced.
 
 ```python
 from fastapi import FastAPI

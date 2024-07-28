@@ -1,5 +1,5 @@
-site_name: TinyDI
-repo_url: https://github.com/amyasnikov/tinydi/
+site_name: dimi
+repo_url: https://github.com/amyasnikov/dimi/
 theme: material
 nav:
   - Intro: index.md

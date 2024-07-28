@@ -1,8 +1,8 @@
 <div align="center">
-    <h1>Tiny DI - Easy Dependency Injection for Python</h1>
+    <h1>dimi - Minimalistic Dependency Injection for Python</h1>
     <p>
-        <img src="https://github.com/amyasnikov/tinydi/actions/workflows/ci.yaml/badge.svg" alt="CI">
-        <img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/amyasnikov/43fbe231840b4945691de15d43eb003d/raw/cov_tinydi.json" alt="Coverage">
+        <img src="https://github.com/amyasnikov/dimi/actions/workflows/ci.yaml/badge.svg" alt="CI">
+        <img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/amyasnikov/43fbe231840b4945691de15d43eb003d/raw/cov_dimi.json" alt="Coverage">
         <img src="https://img.shields.io/badge/Python-3.9|3.10|3.11|3.12-blue.svg" alt="Python version">
     </p>
 </div>
@@ -23,18 +23,18 @@ Say no more!
 ## Installation
 
 ```
-pip install tinydi
+pip install dimi
 ```
 
 ## Getting Started
 
 ```python
-from tinydi import TinyDI
+from dimi import Container
 from typing import Annotated
 from flask import Flask, jsonify
 
 # DI container instance stores all the dependencies you place inside
-di = TinyDI()
+di = Container()
 
 
 # dependency is a function, async function or a class
@@ -46,7 +46,7 @@ def get_weather_service_url():
 
 
 # Dependency may have sub-dependencies defined via typing.Annotated
-# For TinyDI mostly the second part of Annotated matters, the first part is for type checkers
+# For dimi mostly the second part of Annotated matters, the first part is for type checkers
 
 @di.dependency
 class WeatherService:
@@ -96,7 +96,7 @@ How would you test the non-DI API handle above? I guess something nasty with mon
 But with DI in action everything becomes much simpler and more obvious:
 
 ```python
-from myapp import di  # instance of the TinyDI container
+from myapp import di  # instance of the Container
 from myapp.services import WeatherService
 
 
@@ -128,4 +128,4 @@ def test_weather_api_handle(test_client):
 
 ## Docs
 
-Want to know more? Welcome to the [docs](https://tinydi.readthedocs.io)
+Want to know more? Welcome to the [docs](https://dimi.readthedocs.io)

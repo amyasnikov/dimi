@@ -3,9 +3,9 @@ from typing import Annotated
 
 import pytest
 
-from tinydi.dependency import Dependency
-from tinydi.exceptions import InvalidOperation, UnknownDependency
-from tinydi.scopes import Singleton
+from dimi.dependency import Dependency
+from dimi.exceptions import InvalidOperation, UnknownDependency
+from dimi.scopes import Singleton
 
 
 @pytest.fixture

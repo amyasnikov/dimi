@@ -1,8 +1,8 @@
 import pytest
 
-from tinydi import TinyDI
+from dimi import Container
 
 
 @pytest.fixture
 def di():
-    return TinyDI()
+    return Container()

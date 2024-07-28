@@ -13,7 +13,7 @@ from .integrations import fastapi_depends
 from .scopes import Factory, Scope
 
 
-class TinyDI:
+class Container:
     """
     Dependency Injection container
     """

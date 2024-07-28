@@ -4,8 +4,8 @@ from itertools import count
 
 import pytest
 
-from tinydi.exceptions import InvalidOperation
-from tinydi.scopes import Context, Factory, Singleton
+from dimi.exceptions import InvalidOperation
+from dimi.scopes import Context, Factory, Singleton
 
 
 @pytest.fixture

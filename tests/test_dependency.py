@@ -4,9 +4,9 @@ from itertools import count
 
 import pytest
 
-from tinydi.dependency import Dependency
-from tinydi.exceptions import InvalidDependency
-from tinydi.scopes import Factory, Singleton
+from dimi.dependency import Dependency
+from dimi.exceptions import InvalidDependency
+from dimi.scopes import Factory, Singleton
 
 
 def sync_f(a, b, c, d=4):

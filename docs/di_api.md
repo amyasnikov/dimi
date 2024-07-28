@@ -1,17 +1,17 @@
-# TinyDI API
+# dimi API
 
 First, you have to instantiate the container.
 
 ```python
-from tinydi import TinyDI
+from dimi import Container
 
-di = TinyDI()
+di = Container()
 ```
 
 All the dependencies are stored/assembled/injected from/to particular container instance. If you have multiple container instances, they are completely independent.
 
 
-## Adding dependencies to the container
+## Adding dependencies to the Container
 
 The container accepts **callable** objects to be placed inside
 
@@ -58,7 +58,7 @@ The ways to define a Scope for a dependency:
 
 * **decorator**
 ```python
-from tinydi.scopes import Singleton
+from dimi.scopes import Singleton
 
 @di.dependency(scope=Singleton)
 async def async_func():
@@ -79,8 +79,8 @@ di[async_func] = Singleton(async_func)
 
 #### Existing scopes
 
-* `tinydi.scopes.Singleton` caches the first call of a function and after that always returns the same cached value for the whole lifetime of the app.
-* `tinydi.scopes.Context` also caches the result of the first function call, but stores the value inside [contextvars.ContextVar](https://docs.python.org/3/library/contextvars.html) instance. Effectively it means that:
+* `dimi.scopes.Singleton` caches the first call of a function and after that always returns the same cached value for the whole lifetime of the app.
+* `dimi.scopes.Context` also caches the result of the first function call, but stores the value inside [contextvars.ContextVar](https://docs.python.org/3/library/contextvars.html) instance. Effectively it means that:
     * In async web frameworks like FastAPI each request will have its own value inside Context scope, but within this request this value will be preserved.
     * Each thread will also have its own separate value which will be preserved inside that thread
 

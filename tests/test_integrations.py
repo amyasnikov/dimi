@@ -2,8 +2,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from tinydi import integrations
-from tinydi.exceptions import InvalidOperation
+from dimi import integrations
+from dimi.exceptions import InvalidOperation
 
 
 def test_fastapi_depends(monkeypatch, di):
