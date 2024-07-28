@@ -7,3 +7,7 @@ build:
 
 mkdocs:
   configuration: mkdocs.yaml
+
+python:
+   install:
+   - requirements: requirements/docs.txt

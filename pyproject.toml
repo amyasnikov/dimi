@@ -26,6 +26,7 @@ classifiers = [
     "Topic :: Software Development",
 ]
 requires-python = ">=3.9"
+dynamic = ["dependencies", "optional-dependencies"]
 
 [project.readme]
 file = "README.md"
@@ -35,14 +36,8 @@ content-type = "text/markdown"
 [tool.setuptools.packages.find]
 include = ["tinydi*"]
 
-[project.optional-dependencies]
-dev = [
-  "pytest < 9.0.0",
-  "pytest-cov[all]",
-  "pytest-asyncio < 1.0.0",
-  "ruff < 1.0.0",
-  "pre_commit < 4.0.0"
-]
+[tool.setuptools.dynamic.optional-dependencies]
+dev = {file = ["requirements/dev.txt"]}
 
 [tool.ruff]
 include = ["tinydi/**.py", "tests/**.py"]
