@@ -57,3 +57,14 @@ The libraries (including **TinyDI**) can help you in two ways:
 
 * Reduce and structure the code required to assemble the dependencies
 * Inject dependencies into the entities which are not directly called by you, e.g. Django views.
+
+
+## Installation and Getting Started
+
+To install the library issue
+
+```
+pip install tinydi
+```
+
+After that follow the guide listed in [README.md](https://github.com/amyasnikov/tinydi?tab=readme-ov-file#getting-started) or check out [TinyDI API](di_api.md)
