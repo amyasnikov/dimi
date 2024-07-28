@@ -66,3 +66,6 @@ class Dependency:
     async def acall(self):
         resolved = await self._resolve_sync()._resolve_async()
         return await resolved() if resolved.is_async else resolved()
+
+    def fn(self):
+        return self.acall if self.is_async else self.call

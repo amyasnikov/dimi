@@ -9,11 +9,13 @@ from typing import Annotated, get_args, get_origin
 
 from .dependency import Dependency
 from .exceptions import InvalidOperation, UnknownDependency
+from .integrations import fastapi_depends
 from .scopes import Factory, Scope
 
 
 class TinyDI:
     default_scope_class = Factory
+    fastapi = fastapi_depends
 
     def __init__(self):
         self._deps = ChainMap()
@@ -38,8 +40,10 @@ class TinyDI:
             self._deps[key] = Dependency(value, kwargs)
 
     def __getitem__(self, key):
-        dependency = self._get(key)
-        return dependency.acall() if dependency.is_async else dependency.call()
+        return self.fn(key)()
+
+    def fn(self, key):
+        return self._get(key).fn()
 
     def _get_factories_for_func(self, callable):
         injectable_factories = []
