@@ -1,0 +1,16 @@
+site_name: TinyDI
+repo_url: https://github.com/amyasnikov/tinydi/
+theme: material
+nav:
+  - Intro: index.md
+  - DI Container API: di_api.md
+  - Use Cases: use_cases.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences

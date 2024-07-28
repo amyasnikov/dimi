@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tinydi"
-version = "0.1.0"
+version = "1.0.0"
 description = "Dependency Injection made easy"
 authors = [
     {name = "Anton Miasnikov", email = "anton2008m@gmail.com"},

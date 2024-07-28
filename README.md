@@ -31,6 +31,7 @@ pip install tinydi
 ```python
 from tinydi import TinyDI
 from typing import Annotated
+from flask import Flask, jsonify
 
 # DI container instance stores all the dependencies you place inside
 di = TinyDI()
@@ -45,6 +46,7 @@ def get_weather_service_url():
 
 
 # Dependency may have sub-dependencies defined via typing.Annotated
+# For TinyDI mostly the second part of Annotated matters, the first part is for type checkers
 
 @di.dependency
 class WeatherService:
@@ -54,15 +56,14 @@ class WeatherService:
     def get_weather(self, city): ...
 
 
-app = ... # your web framework here
-
+app = Flask(__name__)
 
 # Annotated[MyCls, ...] is the shortcut for Annotated[MyCls, MyCls]
 
-@app.route("/api/weather/{city}")
+@app.route("/api/weather/<city>")
 @di.inject
 def get_weather(city: str, weather_service: Annotated[WeatherService, ...]):
-    return weather_service.get_weather
+    return jsonify(weather_service.get_weather())
 
 ```
 
@@ -81,9 +82,11 @@ Someone may ask, "Why not just do this instead?"
 ```python
 # the same API handle but w/o DI
 
-@app.route("/api/weather/{city}")
-def get_weather(city: str) -> dict:
-    return WeatherService('https://awesome.weather.provider/api').get_weather(city)
+@app.route("/api/weather/<city>")
+def get_weather(city: str):
+    return jsonify(
+        WeatherService('https://awesome-weather-provider.com/api').get_weather(city)
+    )
 ```
 
 The simplest argument for DI is **easier testing**.
@@ -116,7 +119,7 @@ def test_weather_api_handle(test_client):
     * Ask for dependencies via `Annotated[SomeType, some_callable]` type annotation
     * Add callables to the DI container via `@di.dependency`
     * Do injections via `@di.inject`
-    * override DI contents via `@di.override`
+    * override DI contents via `di.override()`
 * Auto sub-dependencies resolving. **A** may depend on **B** which may depend on **C** which may depend on **D** and **E** and so on. All of this will be correctly tied together and resolved at the time of a function call
 * Optional scopes. Just use `@di.dependency(scope=Singleton)` to cache first call of a function for the lifetime of the app.
 * Short codebase of around 200 lines of code. Even if the author was hit by a bus, it would not be a big deal to fork the repository and make the required changes.
@@ -125,4 +128,4 @@ def test_weather_api_handle(test_client):
 
 ## Docs
 
-Wanna know more? Welcome to the [docs]()
+Want to know more? Welcome to the [docs](https://tinydi.readthedocs.io)
