@@ -1,7 +1,10 @@
 from dataclasses import dataclass
-from typing import Annotated
+from itertools import count
+from typing import Annotated, Any
 
 import pytest
+
+from dimi import Singleton
 
 
 @pytest.fixture
@@ -124,3 +127,100 @@ def test_dataclasses(di):
     assert c.b.a2.arg == 20
     assert c.b.a1.arg == 10
     assert c.a.arg == 10
+
+
+@dataclass
+class D:
+    arg: Any = 100
+
+
+@pytest.fixture
+def di_subdep_d(di):
+    di.dependency(D)
+
+    @di.dependency
+    def get_d_sync():
+        return D(200)
+
+    @di.dependency
+    async def get_d_async():
+        return D(300)
+
+    @di.dependency
+    def get_d_complex():
+        return D(15 + 3j)
+
+    return di
+
+
+@pytest.mark.parametrize(
+    "string_annotation, result",
+    [
+        ("D", D()),
+        ("D.arg", 100),
+        ("get_d_sync", D(200)),
+        ("get_d_sync.arg", 200),
+        ("get_d_async", D(300)),
+        ("get_d_async.arg", 300),
+        ("get_d_complex.arg.real", 15.0),
+    ],
+)
+async def test_string_dependency(string_annotation, result, di_subdep_d):
+    @di_subdep_d.inject
+    def func_sync(arg: Annotated[Any, string_annotation]):
+        return arg
+
+    @di_subdep_d.inject
+    async def func_async(arg: Annotated[Any, string_annotation]):
+        return arg
+
+    if "async" not in string_annotation:
+        assert func_sync() == result
+
+    assert await func_async() == result
+
+
+@pytest.mark.parametrize(
+    "string_annotation, result",
+    [
+        ("D", D()),
+        ("D.arg", 100),
+        ("get_d_sync", D(200)),
+        ("get_d_sync.arg", 200),
+        ("get_d_async", D(300)),
+        ("get_d_async.arg", 300),
+        ("get_d_complex.arg.real", 15.0),
+    ],
+)
+async def test_string_subdependency(string_annotation, result, di_subdep_d):
+    @di_subdep_d.dependency
+    async def subdep_async(arg: Annotated[Any, string_annotation]):
+        return arg
+
+    assert await di_subdep_d[subdep_async] == result
+
+    if "async" not in string_annotation:
+
+        @di_subdep_d.dependency
+        def subdep_sync(arg: Annotated[Any, string_annotation]):
+            return arg
+
+        assert di_subdep_d[subdep_sync] == result
+
+
+def test_singleton_scope(di):
+    counter = count()
+
+    @di.dependency
+    def regular_dep():
+        return next(counter)
+
+    @di.dependency(scope=Singleton)
+    def singleton_dep():
+        return next(counter)
+
+    for _ in range(4):
+        assert di[singleton_dep] == 0
+
+    for i in range(1, 5):
+        assert di[regular_dep] == i

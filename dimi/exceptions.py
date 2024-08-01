@@ -2,11 +2,11 @@ class DimiError(Exception):
     pass
 
 
-class UnknownDependency(DimiError):
+class InvalidDependency(DimiError):
     pass
 
 
-class InvalidDependency(DimiError):
+class UnknownDependency(InvalidDependency):
     pass
 
 

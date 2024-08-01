@@ -18,11 +18,11 @@ def di_with_deps(di):
     def f2(f: Annotated[int, f1]):
         return f * 2
 
-    @di.dependency(scope=Singleton)
+    @di.dependency
     async def f5(f: Annotated[int, f2]):
         return f * 5
 
-    @di.dependency
+    @di.dependency(scope=Singleton)
     async def f7(f: Annotated[int, f5]):
         return f * 7
 
@@ -163,3 +163,31 @@ async def test_override(di_with_deps):
 
     assert di_with_deps[di_with_deps.f2] == 2
     assert await di_with_deps[di_with_deps.f5] == 10
+
+
+async def test_override_with_inject(di_with_deps):
+    @di_with_deps.inject
+    async def async_f(f2: Annotated[int, di_with_deps.f2], f5: Annotated[int, di_with_deps.f5]):
+        return f2 + f5
+
+    assert await async_f() == 12
+
+    with di_with_deps.override():
+        di_with_deps[di_with_deps.f1] = lambda: 100
+
+        assert await async_f() == 1200
+
+    assert await async_f() == 12
+
+
+async def test_override_overridings(di_with_deps):
+    @di_with_deps.inject
+    async def async_f(f2: Annotated[int, di_with_deps.f2], f5: Annotated[int, di_with_deps.f5]):
+        return f2 + f5
+
+    assert await async_f() == 12
+
+    with di_with_deps.override({di_with_deps.f1: lambda: 100}):
+        assert await async_f() == 1200
+
+    assert await async_f() == 12

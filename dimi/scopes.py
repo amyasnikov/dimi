@@ -1,4 +1,3 @@
-import copy
 from abc import ABC, abstractmethod
 from asyncio import iscoroutinefunction
 from contextvars import ContextVar
@@ -99,11 +98,6 @@ class LockedCacheable(Cacheable):
     async def _acall(self, *args, **kwargs):
         with self._lock:
             return await super()._acall(*args, **kwargs)
-
-    def __deepcopy__(self, memo):
-        result = type(self)(func=copy.deepcopy(self.func, memo))
-        result._cached_value = copy.deepcopy(self._cached_value, memo)
-        return result
 
 
 class Singleton(LockedCacheable):

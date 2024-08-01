@@ -26,7 +26,7 @@ In the example above the `WeatherService` is very highly coupled with
 
 This can cause problems with:
 
-* **Unit tests.** To unit-test the code above we have to do monkey-patching to replace the real provider with the mock one. The main problem here is fragility. Monkey-patching changes what is not supposed to be changed, the implementation details. All of this can be easily broken if implementation changes some way.
+* **Unit tests.** To unit-test the code above we have to do monkey-patching to replace the real provider with the mock one. The main problem here is fragility. Monkey-patching changes what is not supposed to be changed, the implementation details. All of this can be easily broken if the implementation changes some way.
 * **Code maintainability.** What if we want to change the provider? What if we want to change the method how the API key is stored? In both of these cases the code above has to be rewritten.
 
 Let's rewrite the code above according to Dependency Injection principle:
@@ -63,7 +63,7 @@ The libraries (including **dimi**) can help you in two ways:
 
 ## Installation and Getting Started
 
-To install the library issue
+To install the library issue the following:
 
 ```
 pip install dimi

@@ -1,87 +1,80 @@
-import inspect
+import operator
 import sys
-from dataclasses import dataclass, field
-from typing import Any
+from asyncio import iscoroutinefunction
+from dataclasses import dataclass, field, replace
+from inspect import Parameter, signature
+from typing import Any, Callable, ClassVar
 
 from .exceptions import InvalidDependency
 from .scopes import Scope
 
 
-@dataclass(**{"slots": True} if sys.version_info >= (3, 10) else {})
-class Dependency:
-    """
-    Wrapper for every callable being stored inside the DI container
-    """
+_slots = {"slots": True} if sys.version_info >= (3, 10) else {}
 
-    scope: Scope
-    keywords: dict[str, Any]
-    has_async_deps: bool = False
-    _copied: bool = field(default=False, repr=False)
 
-    def __post_init__(self):
-        if self._copied:
-            return
-        self.has_async_deps = any(isinstance(dep, Dependency) and dep.is_async for dep in self.keywords.values())
-        if not self.is_async and self.has_async_deps:
-            raise InvalidDependency(f"Sync callable {self.scope.func} cannot have async dependencies")
-        required_params = {
-            param.name
-            for param in inspect.signature(self.scope.func).parameters.values()
-            if param.default == inspect.Parameter.empty
-        }
-        if leftovers := required_params - self.keywords.keys():
-            raise InvalidDependency(f"{self.scope.func} has undefined params: {leftovers}")
-
-    def __call__(self):
-        return self.scope(**self.keywords)
-
-    def copy(self):
-        """
-        Shallow copy of the Dependency
-        """
-        return type(self)(self.scope, self.keywords.copy(), self.has_async_deps, True)
-
+class _IsAsyncMixin:
     @property
-    def is_async(self):
+    def is_async(self) -> bool:
         return self.scope.is_async
 
-    def _resolve_sync(self):
-        def dfs(dependency, top=False):
-            for param, value in dependency.keywords.items():
-                if isinstance(value, Dependency):
-                    dependency.keywords[param] = dfs(value.copy())
-            if not dependency.is_async and not dependency.has_async_deps and not top:
-                return dependency()
-            return dependency
 
-        return dfs(self.copy(), top=True)
+@dataclass(**_slots, frozen=True)
+class KWarg:
+    name: str
+    func: Callable
+    extra_attrs: str = ""
 
-    async def _resolve_async(self):
-        async def dfs(dependency, top=False):
-            for param, value in dependency.keywords.items():
-                if isinstance(value, Dependency) and value.is_async:
-                    dependency.keywords[param] = await dfs(value)
-            if not top:
-                return await dependency()
-            return dependency
+    def copy(self, **overrides) -> "KWarg":
+        return replace(self, **overrides)
 
-        return await dfs(self, top=True)
+    def getattrs(self, value) -> Any:
+        return operator.attrgetter(self.extra_attrs)(value) if self.extra_attrs else value
 
-    def call(self):
-        """
-        Resolve sync dependency and return the result of the call
-        """
-        return self._resolve_sync()()
 
-    async def acall(self):
-        """
-        Resolve async dependency and return the result of the call
-        """
-        resolved = await self._resolve_sync()._resolve_async()
-        return await resolved() if resolved.is_async else resolved()
+@dataclass(**_slots)
+class PartResolvedDependency(_IsAsyncMixin):
+    scope: Scope
+    unresolved: tuple[KWarg, ...] = field(default_factory=tuple)
+    under_resolving: list[KWarg] = field(default_factory=list)
+    resolved: dict[str, Any] = field(default_factory=dict)
 
-    def fn(self):
-        """
-        Resolve the dependency and return the callable with no args
-        """
-        return self.acall if self.is_async else self.call
+    def __call__(self) -> Any:
+        return self.scope(**self.resolved)
+
+    @property
+    def is_resolved(self) -> bool:
+        return not self.unresolved and not self.under_resolving
+
+
+@dataclass(**_slots, frozen=True)
+class Dependency(_IsAsyncMixin):
+    scope: Scope
+    subdeps: tuple[KWarg, ...]
+
+    _partially_resolved_cls: ClassVar[type] = PartResolvedDependency
+
+    def __post_init__(self):
+        func_params = signature(self.scope.func).parameters.values()
+        required_params = {
+            param.name
+            for param in func_params
+            if param.default == Parameter.empty and param.kind not in (Parameter.VAR_KEYWORD, Parameter.VAR_POSITIONAL)
+        }
+        leftovers = required_params - {kwarg.name for kwarg in self.subdeps}
+        leftovers |= {
+            param.name
+            for param in func_params
+            if param.kind == Parameter.POSITIONAL_ONLY and param.default == Parameter.empty
+        }
+        if leftovers:
+            raise InvalidDependency(f"{self.scope.func} has undefined params: {leftovers}")
+
+        if self.has_async_deps and not self.is_async:
+            raise InvalidDependency(f"Sync function {self.scope.func} cannot have async dependencies")
+
+    def partially_resolved(self):
+        return self._partially_resolved_cls(self.scope, unresolved=self.subdeps)
+
+    @property
+    def has_async_deps(self) -> bool:
+        return any(iscoroutinefunction(kwarg.func) for kwarg in self.subdeps)

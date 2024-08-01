@@ -96,7 +96,7 @@ How would you test the non-DI API handle above? I guess something nasty with mon
 But with DI in action everything becomes much simpler and more obvious:
 
 ```python
-from myapp import di  # instance of the Container
+from myapp import di  # app-wide instance of the Container
 from myapp.services import WeatherService
 
 
@@ -106,8 +106,7 @@ def test_weather_api_handle(test_client):
             return {'temperature': 30.5, 'wind_speed': 3.1, 'city': city}
 
     # override() preserves and restores DI container state after exit from context manager
-    with di.override():
-        di[WeatherService] = MockWeatherService
+    with di.override({WeatherService: MockWeatherService}):
         weather = test_client.get('/api/weather/london').json()
         assert weather == {'temperature': 30.5, 'wind_speed': 3.1, 'city': 'london'}
 
@@ -120,9 +119,9 @@ def test_weather_api_handle(test_client):
     * Add callables to the DI container via `@di.dependency`
     * Do injections via `@di.inject`
     * override DI contents via `di.override()`
-* Auto sub-dependencies resolving. **A** may depend on **B** which may depend on **C** which may depend on **D** and **E** and so on. All of this will be correctly tied together and resolved at the time of a function call
+* Explicit dependencies wiring. No magic, no complicated or hidden rules. You define each (sub-)dependency explicitly inside `Annotated[]`
+* Auto sub-dependencies resolving. **A** may depend on **B** which may depend on **C** which may depend on **D** and **E** and so on. All of this will be correctly tied together and resolved at the time of a function call.
 * Optional scopes. Just use `@di.dependency(scope=Singleton)` to cache first call of a function for the lifetime of the app.
-* Short codebase of around 200 lines of code. Even if the author was hit by a bus, it would not be a big deal to fork the repository and make the required changes.
 * Async support
 * Thread safety
 
