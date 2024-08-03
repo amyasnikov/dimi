@@ -102,7 +102,7 @@ from myapp.services import WeatherService
 
 def test_weather_api_handle(test_client):
     class MockWeatherService:
-        def weather(self, city):
+        def get_weather(self, city):
             return {'temperature': 30.5, 'wind_speed': 3.1, 'city': city}
 
     # override() preserves and restores DI container state after exit from context manager
