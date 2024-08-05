@@ -11,22 +11,19 @@ class Scope(ABC):
     Wrapper for a callable which may optionally cache its value (see implementations)
     """
 
-    __slots__ = ["func"]
+    __slots__ = ["func", "is_async"]
 
     def __init__(self, func):
         self.func = func
         if not callable(func):
             raise InvalidOperation(f"Cannot make Scope out of a non-callable object: {func}")
+        self.is_async = iscoroutinefunction(self.func)
 
     def __eq__(self, other):
         return type(self) == type(other) and self.func == other.func
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({repr(self.func)})"
-
-    @property
-    def is_async(self):
-        return iscoroutinefunction(self.func)
 
     @abstractmethod
     def __call__(self, *args, **kwargs): ...
@@ -43,7 +40,7 @@ class Factory(Scope):
 
 class Cacheable(Scope):
     _UNSET = object()
-    __slots__ = ["func", "_cached_value"]
+    __slots__ = ["func", "is_async", "_cached_value"]
 
     def __init__(self, func):
         super().__init__(func)
@@ -85,7 +82,7 @@ class Cacheable(Scope):
 
 
 class LockedCacheable(Cacheable):
-    __slots__ = ["func", "_cached_value", "_lock"]
+    __slots__ = ["func", "is_async", "_cached_value", "_lock"]
 
     def __init__(self, func):
         super().__init__(func)

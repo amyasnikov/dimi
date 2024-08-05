@@ -1,3 +1,4 @@
+from asyncio import iscoroutinefunction
 from collections import ChainMap, defaultdict
 from contextlib import suppress
 from functools import partial
@@ -8,9 +9,7 @@ from .exceptions import InvalidOperation, UnknownDependency
 
 
 class DepChainMap(ChainMap):
-    def __getitem__(self, key):
-        with suppress(KeyError):
-            return super().__getitem__(key)
+    def __missing__(self, key):
         raise UnknownDependency(key)
 
 
@@ -75,5 +74,5 @@ class DepStorage(DepChainMap):
         return await dep() if dep.is_async else dep()
 
     def fn(self, key):
-        func = self.aresolve if self[key].is_async else self.resolve
+        func = self.aresolve if iscoroutinefunction(key) else self.resolve
         return partial(func, key=key)
