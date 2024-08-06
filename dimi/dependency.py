@@ -9,6 +9,9 @@ from .exceptions import InvalidDependency
 from .scopes import Scope
 
 
+__all__ = ["KWarg", "InjectKWarg", "PartResolvedDependency", "Dependency"]
+
+
 _slots = {"slots": True} if sys.version_info >= (3, 10) else {}
 
 

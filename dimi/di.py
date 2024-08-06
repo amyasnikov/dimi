@@ -13,6 +13,9 @@ from .exceptions import InvalidOperation
 from .scopes import Factory, Scope
 
 
+__all__ = ["Container"]
+
+
 class Container:
     """
     Dependency Injection container
