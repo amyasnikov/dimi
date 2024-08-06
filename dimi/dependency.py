@@ -3,7 +3,7 @@ import sys
 from asyncio import iscoroutinefunction
 from dataclasses import dataclass, field, replace
 from inspect import Parameter, signature
-from typing import Any, Callable, ClassVar
+from typing import Any, Callable, ClassVar, Union
 
 from .exceptions import InvalidDependency
 from .scopes import Scope
@@ -39,7 +39,7 @@ class KWarg(_KWargMixin):
 @dataclass(**_slots)
 class InjectKWarg(_KWargMixin):
     name: str
-    func: Callable | str
+    func: Union[Callable, str]
     extra_attrs: str = ""
 
 
