@@ -16,7 +16,7 @@
 Tired of complex abstractions? Tired of things like *"to do dependency injection let's first dive into providers, scopes and binders"*?
 
 
-Just want to inject dependencies and mock them during tests?
+Just want **dead simple syntax** for injecting dependencies and mocking them inside tests?
 
 Say no more!
 
