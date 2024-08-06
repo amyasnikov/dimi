@@ -18,17 +18,26 @@ class _IsAsyncMixin:
         return self.scope.is_async
 
 
-@dataclass(**_slots, frozen=True)
-class KWarg:
-    name: str
-    func: Callable
-    extra_attrs: str = ""
-
+class _KWargMixin:
     def copy(self, **overrides) -> "KWarg":
         return replace(self, **overrides)
 
     def getattrs(self, value) -> Any:
         return operator.attrgetter(self.extra_attrs)(value) if self.extra_attrs else value
+
+
+@dataclass(**_slots, frozen=True)
+class KWarg(_KWargMixin):
+    name: str
+    func: Callable
+    extra_attrs: str = ""
+
+
+@dataclass(**_slots)
+class InjectKWarg(_KWargMixin):
+    name: str
+    func: Callable | str
+    extra_attrs: str = ""
 
 
 @dataclass(**_slots)

@@ -136,10 +136,35 @@ For most of the cases **dimi** uses only second argument of the Annotated, while
 
 For the sake of convenience `Annotated[]` has multiple supported syntax options:
 
-* `Annotated[int, my_function]` - base syntax for function-based dependency. Causes `my_function()` to be called and the result to be injected as the parameter value
-* `Annotated[MyClass, MyClass]` and its shortcut `Annotated[MyClass, ...]` - causes `MyClass()` to be instantiated by calling its `__init__()` method.
-* `Annotated[int, "my_function"]` - string-based annotation. It may be convenient option if you don't want to import `my_function` directly.
+* `Annotated[int, my_function]` - base syntax for function-based dependency. Causes *my_function()* to be called and the result to be injected as the parameter value
+* `Annotated[MyClass, MyClass]` and its shortcut `Annotated[MyClass, ...]` - causes *MyClass()* to be instantiated by calling its `__init__()` method.
+* `Annotated[int, "my_function"]` - string-based annotation. It may be a convenient option if you don't want to import *my_function* directly.
 * `Annotated[int, "MyClass.some_param"]` - string-based annotation with parameter(s). May be very useful if you have a dedicated class which stores all the configuration of the app, but you want to inject only particular setting/parameter.
+
+!!! note
+    **String-based annotation** resolution can be lazy for `@di.inject` and cannot be lazy for `@di.dependency`
+    ```python
+    # this one works fine
+
+    @di.inject
+    def func_1(arg: Annotated[int, "func_2"]):
+        return arg
+
+    @di.dependency
+    def func_2():
+        return 10
+    ```
+    ```python
+    # while that one leads to UnknownDependency error
+
+    @di.dependency
+    def func_1(arg: Annotated[int, "func_2"]):
+        return arg
+
+    @di.dependency
+    def func_2():
+        return 10
+    ```
 
 
 ## Scopes

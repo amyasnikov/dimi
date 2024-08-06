@@ -8,7 +8,7 @@ from typing import Annotated, Any, Callable, Iterator, Union, get_args, get_orig
 
 from ._integrations import fastapi_depends
 from ._storage import DepChainMap, DepStorage
-from .dependency import Dependency, KWarg
+from .dependency import Dependency, InjectKWarg
 from .exceptions import InvalidOperation
 from .scopes import Factory, Scope
 
@@ -19,6 +19,7 @@ class Container:
     """
 
     default_scope_class = Factory
+    kwarg_class = InjectKWarg
     fastapi = fastapi_depends
 
     def __init__(self):
@@ -59,13 +60,13 @@ class Container:
     def _make_kwarg(self, param_name, annotation):
         type_, kallable, *_ = get_args(annotation)
         if kallable == ...:
-            return KWarg(param_name, type_)
+            return self.kwarg_class(param_name, type_)
         extra_attrs = ""
         if isinstance(kallable, str):
             kallable, *attrs = kallable.split(".", maxsplit=1)
-            kallable = self._named_deps[kallable]
+            kallable = self._named_deps.get(kallable, kallable)
             extra_attrs = attrs[0] if attrs else ""
-        return KWarg(param_name, kallable, extra_attrs)
+        return self.kwarg_class(param_name, kallable, extra_attrs)
 
     def _get_kwargs_for_func(self, kallable):
         if isinstance(kallable, type):
@@ -78,7 +79,11 @@ class Container:
 
     def _select_kwargs(self, func, func_args, func_kwargs, kwargs):
         arguments = inspect.signature(func).bind_partial(*func_args, **func_kwargs).arguments
-        return (kwarg for kwarg in kwargs if kwarg.name not in arguments)
+        for kwarg in kwargs:
+            if kwarg.name not in arguments:
+                if isinstance(kwarg.func, str):
+                    kwarg.func = self._named_deps[kwarg.func]
+                yield kwarg
 
     @property
     def inject(self):

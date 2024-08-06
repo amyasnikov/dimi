@@ -4,7 +4,7 @@ from typing import Annotated, Any
 
 import pytest
 
-from dimi import Singleton
+from dimi import Container, Singleton
 
 
 @pytest.fixture
@@ -135,7 +135,9 @@ class D:
 
 
 @pytest.fixture
-def di_subdep_d(di):
+def di_subdep_d():
+    di = Container()
+
     di.dependency(D)
 
     @di.dependency
@@ -173,6 +175,38 @@ async def test_string_dependency(string_annotation, result, di_subdep_d):
     @di_subdep_d.inject
     async def func_async(arg: Annotated[Any, string_annotation]):
         return arg
+
+    if "async" not in string_annotation:
+        assert func_sync() == result
+
+    assert await func_async() == result
+
+
+@pytest.mark.parametrize(
+    "string_annotation, result",
+    [
+        ("D", D()),
+        ("D.arg", 100),
+        ("get_d_sync", D(200)),
+        ("get_d_sync.arg", 200),
+        ("get_d_async", D(300)),
+        ("get_d_async.arg", 300),
+        ("get_d_complex.arg.real", 15.0),
+    ],
+)
+async def test_string_dependency_lazy(string_annotation, result, di_subdep_d, di):
+    assert not di._deps
+
+    @di.inject
+    def func_sync(arg: Annotated[Any, string_annotation]):
+        return arg
+
+    @di.inject
+    async def func_async(arg: Annotated[Any, string_annotation]):
+        return arg
+
+    for func in di_subdep_d._deps:
+        di.dependency(func)
 
     if "async" not in string_annotation:
         assert func_sync() == result
