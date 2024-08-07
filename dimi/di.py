@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from functools import wraps
 from threading import Lock
 from types import FunctionType
-from typing import Annotated, Any, Callable, Iterator, Union, get_args, get_origin, get_type_hints
+from typing import Annotated, Any, Callable, Iterator, Optional, Union, get_args, get_origin, get_type_hints
 
 from ._integrations import fastapi_depends
 from ._storage import DepChainMap, DepStorage
@@ -61,7 +61,7 @@ class Container:
         return self._deps.fn(key)
 
     @staticmethod
-    def _get_func_name(func: Callable) -> str | None:
+    def _get_func_name(func: Callable) -> Optional[str]:
         if not (name := getattr(func, "__name__", None)):
             return None
         return name if not name == "<lambda>" else None
