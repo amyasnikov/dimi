@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from functools import wraps
 from threading import Lock
 from types import FunctionType
-from typing import Annotated, Any, Callable, Iterator, Union, get_args, get_origin
+from typing import Annotated, Any, Callable, Iterator, Union, get_args, get_origin, get_type_hints
 
 from ._integrations import fastapi_depends
 from ._storage import DepChainMap, DepStorage
@@ -44,8 +44,8 @@ class Container:
                 value = self.default_scope_class(value)
             kwargs = self._get_kwargs_for_func(value.func)
             self._deps[key] = Dependency(value, tuple(kwargs))
-            if isinstance(key, (FunctionType, type)) and key.__name__ != "<lambda>":
-                self._named_deps[key.__name__] = key
+            if key_name := self._get_func_name(key):
+                self._named_deps[key_name] = key
 
     def __getitem__(self, key: Callable) -> Any:
         """
@@ -60,15 +60,23 @@ class Container:
         """
         return self._deps.fn(key)
 
+    @staticmethod
+    def _get_func_name(func: Callable) -> str | None:
+        if not (name := getattr(func, "__name__", None)):
+            return None
+        return name if not name == "<lambda>" else None
+
     def _make_kwarg(self, param_name, annotation):
         type_, kallable, *_ = get_args(annotation)
         if kallable == ...:
-            return self.kwarg_class(param_name, type_)
+            kallable = type_
         extra_attrs = ""
         if isinstance(kallable, str):
             kallable, *attrs = kallable.split(".", maxsplit=1)
             kallable = self._named_deps.get(kallable, kallable)
             extra_attrs = attrs[0] if attrs else ""
+        elif kallable not in self._deps and (k_name := self._get_func_name(kallable)):
+            kallable = k_name
         return self.kwarg_class(param_name, kallable, extra_attrs)
 
     def _get_kwargs_for_func(self, kallable):
@@ -76,7 +84,7 @@ class Container:
             if not isinstance(kallable.__init__, FunctionType):
                 return []
             kallable = kallable.__init__
-        for arg, annotation in kallable.__annotations__.items():
+        for arg, annotation in get_type_hints(kallable, include_extras=True).items():
             if get_origin(annotation) is Annotated:
                 yield self._make_kwarg(arg, annotation)
 

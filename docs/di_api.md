@@ -125,7 +125,7 @@ def get_fg(arg1: Annotated[str, get_f], arg2: Annotated[str, get_g])
 assert di[get_fg] == 'FG'
 ```
 
-# Annotated syntax
+## Annotated syntax
 
 As you may see from the examples above, `typing.Annotated` can be used for
 
@@ -137,12 +137,12 @@ For most of the cases **dimi** uses only second argument of the Annotated, while
 For the sake of convenience `Annotated[]` has multiple supported syntax options:
 
 * `Annotated[int, my_function]` - base syntax for function-based dependency. Causes *my_function()* to be called and the result to be injected as the parameter value
-* `Annotated[MyClass, MyClass]` and its shortcut `Annotated[MyClass, ...]` - causes *MyClass()* to be instantiated by calling its `__init__()` method.
+* `Annotated[MyClass, ...]`, which is the shortcut for `Annotated[MyClass, MyClass]` - causes *MyClass()* to be instantiated by calling its `__init__()` method.
 * `Annotated[int, "my_function"]` - string-based annotation. It may be a convenient option if you don't want to import *my_function* directly.
 * `Annotated[int, "MyClass.some_param"]` - string-based annotation with parameter(s). May be very useful if you have a dedicated class which stores all the configuration of the app, but you want to inject only particular setting/parameter.
 
 !!! note
-    **String-based annotation** resolution can be lazy for `@di.inject` and cannot be lazy for `@di.dependency`
+    Annotation resolution is lazy for `@di.inject` and not lazy for `@di.dependency`
     ```python
     # this one works fine
 

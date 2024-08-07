@@ -5,6 +5,7 @@ from typing import Annotated, Any
 import pytest
 
 from dimi import Container, Singleton
+from dimi.exceptions import UnknownDependency
 
 
 @pytest.fixture
@@ -240,6 +241,48 @@ async def test_string_subdependency(string_annotation, result, di_subdep_d):
             return arg
 
         assert di_subdep_d[subdep_sync] == result
+
+
+class FWRefTestClass:
+    def __init__(self):
+        self.arg = 10
+
+
+class FWRefTestClass2:
+    pass
+
+
+def test_forward_ref(di):
+    di.dependency(FWRefTestClass)
+
+    @di.inject
+    def inject_func(arg: Annotated["FWRefTestClass", ...]):
+        return arg
+
+    @di.dependency
+    def dep_func(arg: Annotated["FWRefTestClass", ...]):
+        return arg
+
+    assert inject_func().arg == 10
+
+    assert di[dep_func].arg == 10
+
+
+def test_lazy_forwardref(di):
+    @di.inject
+    def inject_existing(arg: Annotated["FWRefTestClass", ...]):
+        return arg
+
+    @di.inject
+    def inject_not_existing(arg: Annotated["FWRefTestClass2", ...]):
+        return arg
+
+    di.dependency(FWRefTestClass)
+
+    assert inject_existing().arg == 10
+
+    with pytest.raises(UnknownDependency):
+        inject_not_existing()
 
 
 def test_singleton_scope(di):
