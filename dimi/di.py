@@ -44,6 +44,8 @@ class Container:
             kwargs = self._get_kwargs_for_func(value.func, kwarg_cls=KWarg)
             self._deps[key] = Dependency(value, tuple(kwargs))
             if key_name := self._get_func_name(key):
+                if key_name in self._named_deps and len(self._named_deps.maps) == 1:
+                    raise InvalidOperation("The container already contains the dependency with the name {key_name}")
                 self._named_deps[key_name] = key
 
     def __getitem__(self, key: Callable) -> Any:
