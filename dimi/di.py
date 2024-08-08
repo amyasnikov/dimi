@@ -3,12 +3,12 @@ from asyncio import iscoroutinefunction
 from contextlib import contextmanager
 from functools import wraps
 from threading import Lock
-from types import FunctionType
-from typing import Annotated, Any, Callable, Iterator, Optional, Union, get_args, get_origin, get_type_hints
+from typing import Any, Callable, Iterator, Optional, Union
 
 from ._integrations import fastapi_depends
 from ._storage import DepChainMap, DepStorage
-from .dependency import Dependency, InjectKWarg
+from ._utils import get_declared_dependencies
+from .dependency import Dependency, InjectKWarg, KWarg
 from .exceptions import InvalidOperation
 from .scopes import Factory, Scope
 
@@ -22,7 +22,6 @@ class Container:
     """
 
     default_scope_class = Factory
-    kwarg_class = InjectKWarg
     fastapi = fastapi_depends
 
     def __init__(self):
@@ -42,7 +41,7 @@ class Container:
         with self.lock:
             if not isinstance(value, Scope):
                 value = self.default_scope_class(value)
-            kwargs = self._get_kwargs_for_func(value.func)
+            kwargs = self._get_kwargs_for_func(value.func, kwarg_cls=KWarg)
             self._deps[key] = Dependency(value, tuple(kwargs))
             if key_name := self._get_func_name(key):
                 self._named_deps[key_name] = key
@@ -66,27 +65,19 @@ class Container:
             return None
         return name if not name == "<lambda>" else None
 
-    def _make_kwarg(self, param_name, annotation):
-        type_, kallable, *_ = get_args(annotation)
-        if kallable == ...:
-            kallable = type_
+    def _make_kwarg(self, param_name, dependency, kwarg_cls):
         extra_attrs = ""
-        if isinstance(kallable, str):
-            kallable, *attrs = kallable.split(".", maxsplit=1)
-            kallable = self._named_deps.get(kallable, kallable)
+        if isinstance(dependency, str):
+            dependency, *attrs = dependency.split(".", maxsplit=1)
+            dependency = self._named_deps.get(dependency, dependency)
             extra_attrs = attrs[0] if attrs else ""
-        elif kallable not in self._deps and (k_name := self._get_func_name(kallable)):
-            kallable = k_name
-        return self.kwarg_class(param_name, kallable, extra_attrs)
+        elif dependency not in self._deps and (dep_name := self._get_func_name(dependency)):
+            dependency = dep_name
+        return kwarg_cls(param_name, dependency, extra_attrs)
 
-    def _get_kwargs_for_func(self, kallable):
-        if isinstance(kallable, type):
-            if not isinstance(kallable.__init__, FunctionType):
-                return []
-            kallable = kallable.__init__
-        for arg, annotation in get_type_hints(kallable, include_extras=True).items():
-            if get_origin(annotation) is Annotated:
-                yield self._make_kwarg(arg, annotation)
+    def _get_kwargs_for_func(self, kallable, kwarg_cls):
+        for arg, dependency in get_declared_dependencies(kallable, self._named_deps):
+            yield self._make_kwarg(arg, dependency, kwarg_cls)
 
     def _select_kwargs(self, func, func_args, func_kwargs, kwargs):
         arguments = inspect.signature(func).bind_partial(*func_args, **func_kwargs).arguments
@@ -114,7 +105,7 @@ class Container:
                 kwargs |= {kw.name: kw.getattrs(await self._deps.aresolve(kw.func)) for kw in extra_kwargs}
                 return await func(*args, **kwargs)
 
-            di_keys = list(self._get_kwargs_for_func(func))
+            di_keys = list(self._get_kwargs_for_func(func, kwarg_cls=InjectKWarg))
             return wraps(func)(async_wrapper if iscoroutinefunction(func) else sync_wrapper)
 
         return decorator

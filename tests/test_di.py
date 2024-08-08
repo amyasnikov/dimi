@@ -147,6 +147,16 @@ async def test_inject_async(di_with_deps):
     assert await func(10, 5) == 15
 
 
+def test_inject_postponed(di):
+    @di.inject
+    def func(arg: Annotated[A, ...]):
+        return arg
+
+    di.dependency(A)
+
+    assert isinstance(func(), A)
+
+
 async def test_override(di_with_deps):
     async def async_f(a: Annotated[int, di_with_deps.f1]):
         return a + 1
