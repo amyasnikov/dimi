@@ -55,24 +55,3 @@ async def service_info(service: Annotated[SomeService, di.fastapi(SomeService)])
 ```
 
 Under the hood `di.fastapi(SomeService)` resolves the dependency as usual (using `di` container contents) and wraps it with `fastapi.Depends`.
-
-
-## Dataclasses as dependencies
-
-Dataclasses can be easily used as dependencies.
-
-```python
-
-@di.dependency
-def get_url():
-    return 'http://example.com'
-
-
-@di.dependency
-@dataclass
-class A:
-    url: Annotated[str, get_url]
-
-
-assert di[A].url == 'http://example.com'
-```

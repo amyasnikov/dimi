@@ -4,7 +4,8 @@ theme: material
 nav:
   - Intro: index.md
   - DI Container API: di_api.md
-  - Use Cases: use_cases.md
+  - Usage With Frameworks: web_usage.md
+  - FAQ: faq.md
 
 markdown_extensions:
   - pymdownx.highlight:

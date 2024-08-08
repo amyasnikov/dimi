@@ -201,3 +201,15 @@ async def test_override_overridings(di_with_deps):
         assert await async_f() == 1200
 
     assert await async_f() == 12
+
+
+def test_error_on_two_same_deps(di):
+    class A: ...
+
+    class B: ...
+
+    B.__name__ = "A"
+
+    di.dependency(A)
+    with pytest.raises(InvalidOperation):
+        di.dependency(B)
