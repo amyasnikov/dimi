@@ -6,7 +6,11 @@ __all__ = ["get_declared_dependencies"]
 
 
 class _BaseUnknownType:
-    pass
+    def __class_getitem__(cls, item):
+        """
+        Resolves MyClass[int] to just MyClass
+        """
+        return cls.name
 
 
 class _DefaultTypeDict(dict):
@@ -42,8 +46,12 @@ def get_declared_dependencies(
         if isinstance(meta, str):
             yield arg, meta
             continue
-        if issubclass(type_, _BaseUnknownType):
+        if is_subclass(type_, _BaseUnknownType):
             type_ = type_.name
         if meta == ...:
-            meta = type_
+            meta = origin if (origin := get_origin(type_)) else type_
         yield arg, meta
+
+
+def is_subclass(cls: type, class_or_tuple: Union[type, tuple]) -> bool:
+    return issubclass(cls, class_or_tuple) if isinstance(cls, type) else False

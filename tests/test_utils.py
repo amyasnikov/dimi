@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Annotated, ForwardRef
+from typing import Annotated, Callable, ForwardRef, Generic, TypeVar
 
 import pytest
 
@@ -14,7 +14,10 @@ def named_deps_extra():
     return {"A": A}
 
 
-class AddedClass: ...
+T = TypeVar("T")
+
+
+class AddedClass(Generic[T]): ...
 
 
 def f_cls(arg: Annotated[AddedClass, ...]): ...
@@ -24,6 +27,8 @@ def f_cls_forwardref(arg: Annotated[ForwardRef("AddedClass"), ...]): ...
 def f_cls_postponed_class(arg: Annotated["PostponedClass", ...]): ...
 def f_cls_explicit(arg: Annotated[AddedClass, "AddedClass"]): ...
 def f_a(arg: Annotated["A", ...]): ...  # noqa
+def f_callable(arg: Annotated[Callable, AddedClass]): ...
+def f_generic_class(arg: Annotated[AddedClass[int], ...]): ...
 
 
 class PostponedClass: ...
@@ -45,6 +50,8 @@ def f_func(arg: Annotated[int, f_cls]): ...
         (f_cls_postponed_class, {}, "PostponedClass"),
         (f_a, {}, ".A"),
         (f_func, {}, f_cls),
+        (f_callable, {}, AddedClass),
+        (f_generic_class, {}, AddedClass),
     ],
 )
 def test_get_declared_deps(func, named_deps, result, named_deps_extra):
@@ -79,3 +86,11 @@ class SomeDataClass:
 )
 def test_declared_deps_specialcases(func, named_deps, result):
     assert dict(get_declared_dependencies(func, named_deps)) == result
+
+
+def test_generic_class_string():
+    def f_generic_class_string(arg: Annotated["SomeGenericClass[int]", ...]): ...  # noqa
+
+    declared_deps = dict(get_declared_dependencies(f_generic_class_string, {}))
+
+    assert declared_deps == {"arg": "SomeGenericClass"}
