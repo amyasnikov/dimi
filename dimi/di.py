@@ -48,10 +48,14 @@ class Container:
                     raise InvalidOperation("The container already contains the dependency with the name {key_name}")
                 self._named_deps[key_name] = key
 
-    def __getitem__(self, key: Callable) -> Any:
+    def __getitem__(self, key: Union[Callable, str]) -> Any:
         """
         Retrieve the dependency from the container, resolve sub-dependencies and return the call result
         """
+        if isinstance(key, str):
+            if "." in key:
+                raise InvalidOperation("Retrieving of properties through __getitem__ is not supported")
+            key = self._named_deps[key]
         return self.fn(key)()
 
     def fn(self, key: Callable) -> Callable[[], Any]:
