@@ -80,13 +80,15 @@ async def test_setitem(di, obj, scope, error):
 
 def test_get_sync(di_with_deps):
     assert di_with_deps[di_with_deps.f1] == 1
-    assert di_with_deps[di_with_deps.f2] == 2
+    assert di_with_deps[di_with_deps.f2] == di_with_deps["f2"] == 2
     with pytest.raises(UnknownDependency):
         di_with_deps[lambda: "not exist"]
 
 
 def test_get_class(di_with_deps):
     b = di_with_deps[di_with_deps.B]
+    b_postponed = di_with_deps["B"]
+    assert b == b_postponed
     assert isinstance(b, di_with_deps.B)
     assert len(b.arg) == 2
     assert isinstance(b.arg[0], di_with_deps.A) and isinstance(b.arg[1], di_with_deps.A)
@@ -94,7 +96,7 @@ def test_get_class(di_with_deps):
 
 async def test_get_async(di_with_deps):
     assert await di_with_deps[di_with_deps.f5] == 10
-    assert await di_with_deps[di_with_deps.f7] == 70
+    assert await di_with_deps[di_with_deps.f7] == await di_with_deps["f7"] == 70
 
 
 def test_inject_sync(di_with_deps):
