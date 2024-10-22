@@ -48,8 +48,8 @@ class A:
 @di.dependency
 async def async_func():
     return 'something_useful'
-```
 
+```
 
 ## Extracting dependencies from the container
 
@@ -202,6 +202,18 @@ di[async_func] = Singleton(async_func)
     * In async web frameworks like FastAPI each request has its own value inside `Context` scope, but within this request this value will be preserved.
     * Each thread also has its own separate value which will be preserved inside that thread
 
+
+## Dependency aliases
+
+If your dependency is a function which returns some class instance, you can add both of them into the DI container using `add_return_alias=True` option:
+
+```python
+@di.dependency(add_return_alias=True)
+def api_client() -> ApiClient:  # type hint is mandatory
+    return ApiClient(url='http://example.com', token='1234')
+
+assert di[api_client] == di[ApiClient]
+```
 
 ## Overriding
 
