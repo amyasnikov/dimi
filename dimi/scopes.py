@@ -28,6 +28,9 @@ class Scope(ABC):
     @abstractmethod
     def __call__(self, *args, **kwargs): ...
 
+    def clear_cache(self):  # noqa: B027
+        pass
+
 
 class Factory(Scope):
     """
@@ -61,6 +64,9 @@ class Cacheable(Scope):
             result = await self.func(*args, **kwargs)
             self.set_value(result)
         return self.get_value()
+
+    def clear_cache(self):
+        self._cached_value = self.setup_init_value()
 
     @abstractmethod
     def setup_init_value(self):

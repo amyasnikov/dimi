@@ -2,8 +2,9 @@ from asyncio import iscoroutinefunction
 from collections import ChainMap, defaultdict
 from contextlib import suppress
 from functools import partial
-from typing import Any, Callable
+from typing import Any, Callable, Iterator
 
+from ._utils import graph_from_edges
 from .dependency import Dependency, PartResolvedDependency
 from .exceptions import InvalidOperation, UnknownDependency
 
@@ -19,7 +20,7 @@ class DepStorage(DepChainMap):
     def __setitem__(self, key: Callable, value: Dependency) -> None:
         copy = self.new_child({key: value})
         if copy._has_cycle(key):
-            raise InvalidOperation("Cannot add dependency {key}, it causes a cycle")
+            raise InvalidOperation(f"Cannot add dependency {key}, it causes a cycle")
         return super().__setitem__(key, value)
 
     def _resolve_sync(self, key) -> PartResolvedDependency:
@@ -66,6 +67,11 @@ class DepStorage(DepChainMap):
             return False
         return True
 
+    def _graph_edges(self) -> Iterator[tuple[Callable, Callable]]:
+        for func, dep in self.items():
+            for kwarg in dep.subdeps:
+                yield func, kwarg.func
+
     def resolve(self, key: Callable) -> Any:
         return self._resolve_sync(key)()
 
@@ -76,3 +82,17 @@ class DepStorage(DepChainMap):
     def fn(self, key):
         func = self.aresolve if iscoroutinefunction(key) else self.resolve
         return partial(func, key=key)
+
+    def clear_cache(self, *keys: Callable) -> None:
+        def dfs(func):
+            if func not in visited and (dep := self.get(func)):
+                visited.add(func)
+                for subdep in reversed_graph.get(func, []):
+                    dfs(subdep)
+                dep.scope.clear_cache()
+
+        visited = set()
+
+        reversed_graph = graph_from_edges((b, a) for a, b in self._graph_edges())
+        for key in keys:
+            dfs(key)

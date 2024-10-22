@@ -1,15 +1,16 @@
 import inspect
+import types
 from asyncio import iscoroutinefunction
 from contextlib import contextmanager
 from functools import wraps
 from threading import Lock
-from typing import Any, Callable, Iterator, Optional, Union
+from typing import Any, Callable, Iterator, Optional, Union, get_origin, get_type_hints
 
 from ._integrations import fastapi_depends
 from ._storage import DepChainMap, DepStorage
 from ._utils import get_declared_dependencies
 from .dependency import Dependency, InjectKWarg, KWarg
-from .exceptions import InvalidOperation
+from .exceptions import InvalidDependency, InvalidOperation
 from .scopes import Factory, Scope
 
 
@@ -123,15 +124,26 @@ class Container:
         marked via `Annotated[SomeType, some_callable]`
         """
 
-        def outer(func=None, *, scope: type[Scope] = self.default_scope_class):
+        def outer(func=None, *, scope: type[Scope] = self.default_scope_class, add_return_alias: bool = False):
             def decorator(f):
-                self[f] = scope(f)
+                scoped_f = scope(f)
+                self[f] = scoped_f
+                if add_return_alias:
+                    add_alias_for(scoped_f)
                 return f
 
-            if func is None:
-                return decorator
-            self[func] = scope(func)
-            return func
+            def add_alias_for(scoped_func):
+                func = scoped_func.func
+                if not isinstance(func, (types.FunctionType, types.MethodType)):
+                    raise InvalidDependency("Cannot add alias for a non-function")
+                alias = get_type_hints(func, globalns={}).get("return")
+                if isinstance(alias, types.GenericAlias):
+                    alias = get_origin(alias)
+                if not isinstance(alias, type) or alias == type(None):
+                    raise InvalidDependency(f"This return annotation cannot be added as an alias: {alias}")
+                self[alias] = scoped_func
+
+            return decorator if func is None else decorator(func)
 
         return outer
 
@@ -144,11 +156,14 @@ class Container:
             self._deps = self._deps.new_child()
             self._named_deps = self._named_deps.new_child()
         try:
-            if overridings:
-                for dep_key, dep_value in overridings.items():
-                    self[dep_key] = dep_value
+            overridings = overridings or {}
+            with self.lock:
+                self._deps.clear_cache(*overridings)
+            for dep_key, dep_value in overridings.items():
+                self[dep_key] = dep_value
             yield
         finally:
             with self.lock:
+                self._deps.clear_cache(*self._deps.maps[0])
                 self._named_deps = self._named_deps.parents
                 self._deps = self._deps.parents

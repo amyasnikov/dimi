@@ -1,10 +1,11 @@
 from contextlib import nullcontext
+from dataclasses import dataclass
 from typing import Annotated
 
 import pytest
 
 from dimi.dependency import Dependency
-from dimi.exceptions import InvalidOperation, UnknownDependency
+from dimi.exceptions import InvalidDependency, InvalidOperation, UnknownDependency
 from dimi.scopes import Singleton
 
 
@@ -205,6 +206,50 @@ async def test_override_overridings(di_with_deps):
     assert await async_f() == 12
 
 
+def test_override_cached(di):
+    @di.dependency
+    def f1():
+        return 5
+
+    @di.dependency(scope=Singleton)
+    def f2(arg: Annotated[int, f1]):
+        return arg * 2
+
+    assert di[f2] == 10
+    with di.override({f1: lambda: 3}):
+        assert di[f2] == 6
+
+    assert di[f2] == 10
+
+
+class CallCounter:
+    def __init__(self):
+        self.call_counter = 0
+
+    def __call__(self):
+        self.call_counter += 1
+
+
+async def test_override_cached2(di_with_deps):
+    mock_dep = CallCounter()
+    di_with_deps.dependency(mock_dep, scope=Singleton)
+    di_with_deps[mock_dep]
+
+    @di_with_deps.dependency(scope=Singleton)
+    async def f8(arg: Annotated[int, di_with_deps.f7]):
+        return arg // 7
+
+    assert await di_with_deps[f8] == 10
+    with di_with_deps.override({di_with_deps.f1: lambda: None, di_with_deps.f2: lambda: 20}):
+        di_with_deps[mock_dep]
+        assert mock_dep.call_counter == 1
+        assert await di_with_deps["f8"] == 100
+
+    di_with_deps[mock_dep]
+    assert mock_dep.call_counter == 1
+    assert await di_with_deps[f8] == 10
+
+
 def test_error_on_two_same_deps(di):
     class A: ...
 
@@ -215,3 +260,32 @@ def test_error_on_two_same_deps(di):
     di.dependency(A)
     with pytest.raises(InvalidOperation):
         di.dependency(B)
+
+
+def test_add_return_alias(di):
+    @dataclass
+    class A:
+        arg: str
+
+    @di.dependency(add_return_alias=True)
+    def f() -> A:
+        return A("a")
+
+    assert di[f] == di["f"] == di[A] == di["A"] == A("a")
+
+
+def test_add_return_alias_generic(di):
+    @di.dependency(add_return_alias=True)
+    def f() -> list[int]:
+        return [1, 2]
+
+    assert di[f] == di["f"] == di[list] == di["list"] == [1, 2]
+
+
+def func_that_returns_none() -> None: ...
+
+
+@pytest.mark.parametrize("func", [lambda: 5, func_that_returns_none, A])
+def test_invalid_add_return_alias(di, func):
+    with pytest.raises(InvalidDependency):
+        di.dependency(func, add_return_alias=True)

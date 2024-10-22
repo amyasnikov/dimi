@@ -1,8 +1,10 @@
+from collections import defaultdict
+from contextlib import suppress
 from types import FunctionType
-from typing import Annotated, Callable, Iterator, Union, get_args, get_origin, get_type_hints
+from typing import Annotated, Callable, Hashable, Iterable, Iterator, Union, get_args, get_origin, get_type_hints
 
 
-__all__ = ["get_declared_dependencies"]
+__all__ = ["get_declared_dependencies", "graph_from_edges"]
 
 
 class _BaseUnknownType:
@@ -26,6 +28,13 @@ class _DefaultTypeDict(dict):
         return item
 
 
+def _get_type_hints(kallable, localns=None, globalns=None) -> dict[str, type]:
+    localns = _DefaultTypeDict(localns or {})
+    with suppress(TypeError):
+        return get_type_hints(kallable, localns=localns, globalns=globalns, include_extras=True)
+    return {}
+
+
 def get_declared_dependencies(
     kallable: Callable, named_deps: dict[str, Callable]
 ) -> Iterator[tuple[str, Union[str, Callable]]]:
@@ -37,8 +46,7 @@ def get_declared_dependencies(
         if not isinstance(kallable.__init__, FunctionType):
             return
         kallable = kallable.__init__
-    dep_locals = _DefaultTypeDict(named_deps)
-    annotations = get_type_hints(kallable, localns=dep_locals, include_extras=True)
+    annotations = _get_type_hints(kallable, localns=named_deps)
     for arg, annotation in annotations.items():
         if arg == "return" or get_origin(annotation) != Annotated or not (args := get_args(annotation)):
             continue
@@ -55,3 +63,13 @@ def get_declared_dependencies(
 
 def is_subclass(cls: type, class_or_tuple: Union[type, tuple]) -> bool:
     return issubclass(cls, class_or_tuple) if isinstance(cls, type) else False
+
+
+def graph_from_edges(edges: Iterable[tuple[Hashable, Hashable]]) -> dict[Hashable, list[Hashable]]:
+    """
+    Build a dict-based graph from a group of (A, B) edges
+    """
+    graph = defaultdict(list)
+    for start, end in edges:
+        graph[start].append(end)
+    return graph
