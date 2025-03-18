@@ -1,10 +1,21 @@
+import inspect
 from collections import defaultdict
 from contextlib import suppress
 from types import FunctionType
-from typing import Annotated, Callable, Hashable, Iterable, Iterator, Union, get_args, get_origin, get_type_hints
+from typing import (
+    Annotated,
+    Callable,
+    Hashable,
+    Iterable,
+    Iterator,
+    Union,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
 
-__all__ = ["get_declared_dependencies", "graph_from_edges"]
+__all__ = ["cleanup_signature", "get_declared_dependencies", "graph_from_edges"]
 
 
 class _BaseUnknownType:
@@ -73,3 +84,18 @@ def graph_from_edges(edges: Iterable[tuple[Hashable, Hashable]]) -> dict[Hashabl
     for start, end in edges:
         graph[start].append(end)
     return graph
+
+
+def cleanup_signature(kallable: Callable) -> None:
+    """
+    Removes all Annotated[] arguments from kallable.__signature__
+    """
+    if isinstance(kallable, type):
+        if not isinstance(kallable.__init__, FunctionType):
+            return
+        kallable = kallable.__init__
+
+    original_sig = inspect.signature(kallable)
+    new_params = [param for param in original_sig.parameters.values() if not get_origin(param.annotation) == Annotated]
+    new_sig = inspect.Signature(new_params)
+    kallable.__signature__ = new_sig
