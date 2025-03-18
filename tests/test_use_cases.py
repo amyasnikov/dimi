@@ -1,3 +1,4 @@
+import inspect
 from dataclasses import dataclass
 from itertools import count
 from typing import Annotated, Any
@@ -301,3 +302,17 @@ def test_singleton_scope(di):
 
     for i in range(1, 5):
         assert di[regular_dep] == i
+
+
+def test_clean_signature(di):
+    @di.dependency
+    def dep1(): ...
+
+    @di.dependency
+    def dep2(arg: Annotated[int, dep1]): ...
+
+    @di.inject
+    def func(p1: int, p2: str, p3: Annotated[int, dep2]): ...
+
+    func_sig = inspect.signature(func)
+    assert func_sig.parameters.keys() == {"p1", "p2"}

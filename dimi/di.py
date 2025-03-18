@@ -8,7 +8,7 @@ from typing import Any, Callable, Iterator, Optional, Union, get_origin, get_typ
 
 from ._integrations import fastapi_depends
 from ._storage import DepChainMap, DepStorage
-from ._utils import get_declared_dependencies
+from ._utils import cleanup_signature, get_declared_dependencies
 from .dependency import Dependency, InjectKWarg, KWarg
 from .exceptions import InvalidDependency, InvalidOperation
 from .scopes import Factory, Scope
@@ -113,7 +113,9 @@ class Container:
                 return await func(*args, **kwargs)
 
             di_keys = list(self._get_kwargs_for_func(func, kwarg_cls=InjectKWarg))
-            return wraps(func)(async_wrapper if iscoroutinefunction(func) else sync_wrapper)
+            final_func = wraps(func)(async_wrapper if iscoroutinefunction(func) else sync_wrapper)
+            cleanup_signature(final_func)
+            return final_func
 
         return decorator
 
