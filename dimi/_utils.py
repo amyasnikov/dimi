@@ -1,10 +1,12 @@
 import inspect
+import sys
 from collections import defaultdict
 from contextlib import suppress
 from types import FunctionType
 from typing import (
     Annotated,
     Callable,
+    ForwardRef,
     Hashable,
     Iterable,
     Iterator,
@@ -19,6 +21,9 @@ __all__ = ["cleanup_signature", "get_declared_dependencies", "graph_from_edges"]
 
 
 class _BaseUnknownType:
+    def __init__(self, *args, **kwargs):
+        pass
+
     def __class_getitem__(cls, item):
         """
         Resolves MyClass[int] to just MyClass
@@ -38,11 +43,35 @@ class _DefaultTypeDict(dict):
             return self._get_unknown_type(key)
         return item
 
+    def __contains__(self, key):
+        return True
 
-def _get_type_hints(kallable, localns=None, globalns=None) -> dict[str, type]:
-    localns = _DefaultTypeDict(localns or {})
+
+def _get_type_hints(kallable, names=None) -> dict[str, type]:
+    def drop_string_generics(hints):
+        res = hints.copy()
+        for key, value in res.items():
+            if not get_origin(value) == Annotated:
+                continue
+            type_, *rest = get_args(value)
+            if not isinstance(type_, ForwardRef):
+                continue
+            type_ = type_.__forward_arg__
+            if isinstance(type_, str) and type_.endswith("]"):
+                new_type = ForwardRef(type_.split("[", maxsplit=1)[0])
+                res[key] = Annotated[new_type, *rest]
+        return res
+
+    names_dict = _DefaultTypeDict(names or {})
     with suppress(TypeError):
-        return get_type_hints(kallable, localns=localns, globalns=globalns, include_extras=True)
+        # Python 3.14 get_type_hints() breaks on undefined string genererics like Annotated["Cls[int]", ...]
+        # so we need to create a dummy function with the same annotations but without generics
+        if sys.version_info >= (3, 14):
+            f = lambda: 1  # noqa: E731
+            f.__annotations__ = drop_string_generics(getattr(kallable, "__annotations__", {}))
+            return get_type_hints(f, localns=None, globalns=names_dict, include_extras=True)
+        else:
+            return get_type_hints(kallable, localns=names_dict, include_extras=True)
     return {}
 
 
@@ -57,7 +86,7 @@ def get_declared_dependencies(
         if not isinstance(kallable.__init__, FunctionType):
             return
         kallable = kallable.__init__
-    annotations = _get_type_hints(kallable, localns=named_deps)
+    annotations = _get_type_hints(kallable, names=named_deps)
     for arg, annotation in annotations.items():
         if arg == "return" or get_origin(annotation) != Annotated or not (args := get_args(annotation)):
             continue

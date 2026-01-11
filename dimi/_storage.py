@@ -1,7 +1,7 @@
-from asyncio import iscoroutinefunction
 from collections import ChainMap, defaultdict
 from contextlib import suppress
 from functools import partial
+from inspect import iscoroutinefunction
 from typing import Any, Callable, Iterator
 
 from ._utils import graph_from_edges
