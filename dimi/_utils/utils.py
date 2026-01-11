@@ -6,7 +6,6 @@ from types import FunctionType
 from typing import (
     Annotated,
     Callable,
-    ForwardRef,
     Hashable,
     Iterable,
     Iterator,
@@ -48,25 +47,13 @@ class _DefaultTypeDict(dict):
 
 
 def _get_type_hints(kallable, names=None) -> dict[str, type]:
-    def drop_string_generics(hints):
-        res = hints.copy()
-        for key, value in res.items():
-            if not get_origin(value) == Annotated:
-                continue
-            type_, *rest = get_args(value)
-            if not isinstance(type_, ForwardRef):
-                continue
-            type_ = type_.__forward_arg__
-            if isinstance(type_, str) and type_.endswith("]"):
-                new_type = ForwardRef(type_.split("[", maxsplit=1)[0])
-                res[key] = Annotated[new_type, *rest]
-        return res
-
     names_dict = _DefaultTypeDict(names or {})
     with suppress(TypeError):
         # Python 3.14 get_type_hints() breaks on undefined string genererics like Annotated["Cls[int]", ...]
         # so we need to create a dummy function with the same annotations but without generics
         if sys.version_info >= (3, 14):
+            from .py314 import drop_string_generics
+
             f = lambda: 1  # noqa: E731
             f.__annotations__ = drop_string_generics(getattr(kallable, "__annotations__", {}))
             return get_type_hints(f, localns=None, globalns=names_dict, include_extras=True)
