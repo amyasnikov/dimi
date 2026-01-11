@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from asyncio import iscoroutinefunction
 from contextvars import ContextVar
+from inspect import iscoroutinefunction
 from threading import RLock
 
 from .exceptions import InvalidOperation

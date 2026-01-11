@@ -1,8 +1,8 @@
 import inspect
 import types
-from asyncio import iscoroutinefunction
 from contextlib import contextmanager
 from functools import wraps
+from inspect import iscoroutinefunction
 from threading import Lock
 from typing import Any, Callable, Iterator, Optional, Union, get_origin, get_type_hints
 

@@ -1,8 +1,7 @@
 import operator
 import sys
-from asyncio import iscoroutinefunction
 from dataclasses import dataclass, field, replace
-from inspect import Parameter, signature
+from inspect import Parameter, iscoroutinefunction, signature
 from typing import Any, Callable, ClassVar, Union
 
 from .exceptions import InvalidDependency
