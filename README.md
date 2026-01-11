@@ -3,7 +3,7 @@
     <p>
         <img src="https://github.com/amyasnikov/dimi/actions/workflows/ci.yaml/badge.svg" alt="CI">
         <img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/amyasnikov/43fbe231840b4945691de15d43eb003d/raw/cov_dimi.json" alt="Coverage">
-        <img src="https://img.shields.io/badge/Python-3.9|3.10|3.11|3.12|3.13-blue.svg" alt="Python version">
+        <img src="https://img.shields.io/badge/Python-3.9|3.10|3.11|3.12|3.13|3.14-blue.svg" alt="Python version">
     </p>
 </div>
 
